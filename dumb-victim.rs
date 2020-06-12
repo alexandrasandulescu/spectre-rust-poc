@@ -1,4 +1,7 @@
 use std::io::{self, BufRead};
+use std::fs::File;
+use std::io::prelude::*;
+use std::path::Path;
 
 fn specv1_gadget(index: usize) -> i64 {
     // 256 bytes as offset; 256 entries => 16 pages
@@ -7,10 +10,28 @@ fn specv1_gadget(index: usize) -> i64 {
     return array[index];
 }
 
-fn main() {
-    specv1_gadget(10);
+// Rust noob. Code from here:
+// https://doc.rust-lang.org/rust-by-example/std_misc/file/open.html
+fn read_flag(path: &Path) -> String {
+    let display = path.display();
 
-    let secret: &'static str = "FLAG{e848c897e0378982a1e630832a3588168e3d0cc92ba69cf4425f4363de5789c6}";
+    let mut file = match File::open(&path) {
+        Err(why) => panic!("couldn't open {}: {}", display, why),
+        Ok(file) => file,
+    };
+
+    let mut s = String::new();
+    match file.read_to_string(&mut s) {
+        Err(why) => panic!("couldn't read {}: {}", display, why),
+        Ok(_) => return s,
+    }
+}
+
+fn main() {
+
+    let path = Path::new("flag.txt");
+
+    let secret = read_flag(path);
     let secret_chars: Vec<char> = secret.chars().collect();
 
     let stdin = io::stdin();
@@ -24,6 +45,7 @@ fn main() {
         return;
     }
 
+    specv1_gadget(10);
     for cindex in 0..=secret_chars.len() - 1 {
         if secret_chars[cindex] != input_chars[cindex] {
             println!("{}", "Wrong input");

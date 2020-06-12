@@ -8,4 +8,4 @@ dumb-victim:
 	rustc dumb-victim.rs
 
 clean:
-	rm attacker dumb-victim
+	rm -f attacker dumb-victim
