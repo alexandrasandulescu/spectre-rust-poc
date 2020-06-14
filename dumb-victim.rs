@@ -4,13 +4,13 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 
+const SPECV1_BASE: u64 = 0x00007ffff7dd7000;
 
 fn specv1_send(index: char) -> i64 {
     // 256 bytes as offset; 256 entries => 16 pages
     // use /lib/x86_64-linux-gnu/ld-2.23.so as shared zone since it should
     // not be used after process startup
     let result: u64;
-    let specv1_base: u64 = 0x00007ffff7dd7000;
 
     unsafe {
         asm!{"
@@ -19,7 +19,7 @@ fn specv1_send(index: char) -> i64 {
             add rax, {specv1_base}
             mov {result}, [rax]
             ",
-            specv1_base = in(reg) specv1_base,
+            specv1_base = in(reg) SPECV1_BASE,
             result = out(reg) result,
             in("al") index as u8,
         };
