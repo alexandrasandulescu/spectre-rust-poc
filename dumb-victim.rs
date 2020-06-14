@@ -1,13 +1,33 @@
+#![feature(asm)]
 use std::io::{self, BufRead};
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 
-fn specv1_gadget(index: usize) -> i64 {
-    // 256 bytes as offset; 256 entries => 16 pages
-    let array: [i64; 16 << 12] = [0; 16 << 12];
 
-    return array[index];
+fn specv1_send(index: char) -> i64 {
+    // 256 bytes as offset; 256 entries => 16 pages
+    // use /lib/x86_64-linux-gnu/ld-2.23.so as shared zone since it should
+    // not be used after process startup
+    let result: u64;
+    let specv1_base: u64 = 0x00007ffff7dd7000;
+
+    unsafe {
+        asm!{"
+            movzx rax, al
+            shl rax, 8
+            add rax, {specv1_base}
+            mov {result}, [rax]
+            ",
+            specv1_base = in(reg) specv1_base,
+            result = out(reg) result,
+            in("al") index as u8,
+        };
+    }
+
+    println!("{:X}", result);
+
+    return 0;
 }
 
 // Rust noob. Code from here:
@@ -45,11 +65,10 @@ fn main() {
         return;
     }
 
-    specv1_gadget(10);
     for cindex in 0..=secret_chars.len() - 1 {
+        specv1_send(secret_chars[cindex]);
         if secret_chars[cindex] != input_chars[cindex] {
-            println!("{}", "Wrong input");
-            return;
+            panic!("{}", "Wrong input");
         }
     }
 
