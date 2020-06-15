@@ -3,10 +3,11 @@ use std::io::{self, BufRead};
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
+use std::{thread, time};
 
 const SPECV1_BASE: u64 = 0x00007ffff7dd7000;
 
-fn specv1_send(index: char) -> i64 {
+fn specv1_send(index: char) -> u64 {
     // 256 bytes as offset; 256 entries => 16 pages
     // use /lib/x86_64-linux-gnu/ld-2.23.so as shared zone since it should
     // not be used after process startup
@@ -15,9 +16,10 @@ fn specv1_send(index: char) -> i64 {
     unsafe {
         asm!{"
             movzx rax, al
-            shl rax, 8
+            shl rax, 9
             add rax, {specv1_base}
             mov {result}, [rax]
+            lfence
             ",
             specv1_base = in(reg) SPECV1_BASE,
             result = out(reg) result,
@@ -25,9 +27,7 @@ fn specv1_send(index: char) -> i64 {
         };
     }
 
-    println!("{:X}", result);
-
-    return 0;
+    return result;
 }
 
 // Rust noob. Code from here:
@@ -65,9 +65,13 @@ fn main() {
         return;
     }
 
+    let five_secs = time::Duration::from_secs(5);
+
     for cindex in 0..=secret_chars.len() - 1 {
-        specv1_send(secret_chars[cindex]);
         if secret_chars[cindex] != input_chars[cindex] {
+            specv1_send(secret_chars[cindex]);
+            // delay exit
+            thread::sleep(five_secs);
             panic!("{}", "Wrong input");
         }
     }
