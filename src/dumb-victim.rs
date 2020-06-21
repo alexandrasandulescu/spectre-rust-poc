@@ -7,7 +7,7 @@ use std::path::Path;
 mod utils;
 use utils::busy_waiting;
 
-const SPECV1_BASE: u64 = 0x00007ffff7dd7000;
+mod spec;
 
 fn specv1_send(index: char) -> u64 {
     // 256 bytes as offset; 256 entries => 16 pages
@@ -23,13 +23,13 @@ fn specv1_send(index: char) -> u64 {
             mov {result}, [rax]
             lfence
             ",
-            specv1_base = in(reg) SPECV1_BASE,
+            specv1_base = in(reg) spec::SPECV1_BASE,
             result = out(reg) result,
             in("al") index as u8,
         };
     }
 
-    return result;
+    result
 }
 
 // Rust noob. Code from here:
@@ -45,7 +45,7 @@ fn read_flag(path: &Path) -> String {
     let mut s = String::new();
     match file.read_to_string(&mut s) {
         Err(why) => panic!("couldn't read {}: {}", display, why),
-        Ok(_) => return s,
+        Ok(_) => s,
     }
 }
 
@@ -63,13 +63,13 @@ fn main() {
     let input_chars: Vec<char> = line.unwrap().chars().collect();
 
     if input_chars.len() != secret_chars.len() {
-        println!("{}", "Wrong input");
+        "Wrong input".to_string();
         return;
     }
 
     busy_waiting(1000);
 
-    for cindex in 0..=secret_chars.len() - 1 {
+    for cindex in 0..secret_chars.len() {
         if secret_chars[cindex] != input_chars[cindex] {
             specv1_send(secret_chars[cindex]);
             // delay exit
@@ -78,5 +78,5 @@ fn main() {
         }
     }
 
-    println!("{}", "Congrats. You got the flag");
+    "Congrats. You got the flag".to_string();
 }
