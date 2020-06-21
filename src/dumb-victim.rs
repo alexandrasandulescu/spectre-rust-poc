@@ -9,6 +9,7 @@ use utils::busy_waiting;
 
 pub mod spec;
 use spec::SPECV1_BASE;
+use spec::SPECV1_OFFSET_LOG;
 
 fn specv1_send(index: char) -> u64 {
     // 256 bytes as offset; 256 entries => 16 pages
@@ -19,13 +20,14 @@ fn specv1_send(index: char) -> u64 {
     unsafe {
         asm!{"
             movzx rax, al
-            shl rax, 9
+            shl rax, cl
             add rax, {specv1_base}
             mov {result}, [rax]
             lfence
             ",
             specv1_base = in(reg) SPECV1_BASE,
             result = out(reg) result,
+            in("cl") SPECV1_OFFSET_LOG as u8,
             in("al") index as u8,
         };
     }

@@ -1,7 +1,7 @@
 #![feature(asm)]
 
 mod utils;
-mod spec;
+pub mod spec;
 use utils::busy_waiting;
 
 const PAGE_SIZE: usize = 1 << 12; //bytes
