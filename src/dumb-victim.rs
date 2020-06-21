@@ -7,7 +7,8 @@ use std::path::Path;
 mod utils;
 use utils::busy_waiting;
 
-mod spec;
+pub mod spec;
+use spec::SPECV1_BASE;
 
 fn specv1_send(index: char) -> u64 {
     // 256 bytes as offset; 256 entries => 16 pages
@@ -23,7 +24,7 @@ fn specv1_send(index: char) -> u64 {
             mov {result}, [rax]
             lfence
             ",
-            specv1_base = in(reg) spec::SPECV1_BASE,
+            specv1_base = in(reg) SPECV1_BASE,
             result = out(reg) result,
             in("al") index as u8,
         };
