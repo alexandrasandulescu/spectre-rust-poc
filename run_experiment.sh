@@ -1,6 +1,7 @@
 #! /bin/bash
 CORE_VICTIM=1
 CORE_ATTACKER=6
+BINARY_PATH=`pwd`/target/debug
 
 pipe=/tmp/rust-poc-pipe
 
@@ -11,11 +12,10 @@ fi
 
 killall -9 dumb-victim attacker 2> /dev/null
 
-taskset -c ${CORE_VICTIM} ./dumb-victim <$pipe &
+taskset -c ${CORE_VICTIM} ${BINARY_PATH}/dumb-victim <$pipe &
 victim_pid=$(pidof dumb-victim)
 
-sleep 1
-taskset -c ${CORE_ATTACKER} ./attacker >> experiment.result &
+taskset -c ${CORE_ATTACKER} ${BINARY_PATH}/attacker >> experiment.result &
 
 cat input >$pipe
 

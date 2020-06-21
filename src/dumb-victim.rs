@@ -3,7 +3,9 @@ use std::io::{self, BufRead};
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
-use std::{thread, time};
+
+mod utils;
+use utils::busy_waiting;
 
 const SPECV1_BASE: u64 = 0x00007ffff7dd7000;
 
@@ -65,13 +67,13 @@ fn main() {
         return;
     }
 
-    let five_secs = time::Duration::from_secs(5);
+    busy_waiting(1000);
 
     for cindex in 0..=secret_chars.len() - 1 {
         if secret_chars[cindex] != input_chars[cindex] {
             specv1_send(secret_chars[cindex]);
             // delay exit
-            thread::sleep(five_secs);
+            busy_waiting(20000);
             panic!("{}", "Wrong input");
         }
     }
